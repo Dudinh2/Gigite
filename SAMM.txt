@@ -1,0 +1,444 @@
+
+import tkinter as tk
+from tkinter import messagebox
+import mysql.connector
+
+# Função para conectar ao banco de dados
+def conectar_bc():
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",  # Usuário do banco
+            password="root",  # Senha do banco
+            database="bc_livraria"  # Nome do banco
+        )
+        return conn
+    except mysql.connector.Error as e:
+        messagebox.showerror("Erro", f"Erro ao conectar ao banco de dados: {e}")
+        return None
+#___________________ BANCO DE DADOS   ⬆️ _________________________________________________________________________________________________________________________________________________
+
+# Tela inicial pesquisa cliente
+#Variavel p = pesquisa
+
+def criar_tela_pesquisa():
+    # Janela principal
+    p = tk.Tk()
+    p.title("Livraria Versos & Universos")
+    p.geometry("800x600")
+    p.configure(bg="#faf4ec")
+
+    tk.Label(
+        p, text="👑 Livraria Versos & Universos", font=("Arial", 24, "bold"),
+        bg="#6c4f47", fg="#f4d2a1"
+    ).pack(pady=20)
+
+    # Campos de filtro
+    frame_filtros = tk.Frame(p, bg="#efece7", pady=20)
+    frame_filtros.pack()
+
+    tk.Label(frame_filtros, text="Nome do Livro:", bg="#efece7", font=("Arial", 12)).grid(row=0, column=0, padx=5, pady=5)
+    nome = tk.Entry(frame_filtros, font=("Arial", 12))
+    nome.grid(row=1, column=0, padx=5, pady=5)
+
+    tk.Label(frame_filtros, text="Autor:", bg="#efece7", font=("Arial", 12)).grid(row=0, column=1, padx=5, pady=5)
+    autor = tk.Entry(frame_filtros, font=("Arial", 12))
+    autor.grid(row=1, column=1, padx=5, pady=5)
+
+    tk.Label(frame_filtros, text="Gênero:", bg="#efece7", font=("Arial", 12)).grid(row=0, column=2, padx=5, pady=5)
+    genero = tk.Entry(frame_filtros, font=("Arial", 12))
+    genero.grid(row=1, column=2, padx=5, pady=5)
+
+    tk.Label(frame_filtros, text="Ano:", bg="#efece7", font=("Arial", 12)).grid(row=0, column=3, padx=5, pady=5)
+    ano = tk.Entry(frame_filtros, font=("Arial", 12))
+    ano.grid(row=1, column=3, padx=5, pady=5)
+
+    tk.Label(frame_filtros, text="Editora:", bg="#efece7", font=("Arial", 12)).grid(row=0, column=4, padx=5, pady=5)
+    editora = tk.Entry(frame_filtros, font=("Arial", 12))
+    editora.grid(row=1, column=4, padx=5, pady=5)
+
+    def busca():
+        # Recuperar valores dos filtros
+        filtros = {
+            "nome": nome.get(),
+            "autor": autor.get(),
+            "genero": genero.get(),
+            "ano": ano.get(),
+            "editora": editora.get(),
+        }
+
+        conn = conectar_bc()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                query = "SELECT titulo, autor, genero, ano, editora FROM livros WHERE 1=1"
+                params = []
+
+                if filtros["nome"]:
+                    query += " AND titulo LIKE %s"
+                    params.append(f"%{filtros['nome']}%")
+                if filtros["autor"]:
+                    query += " AND autor LIKE %s"
+                    params.append(f"%{filtros['autor']}%")
+                if filtros["genero"]:
+                    query += " AND genero LIKE %s"
+                    params.append(f"%{filtros['genero']}%")
+                if filtros["ano"]:
+                    query += " AND ano = %s"
+                    params.append(filtros["ano"])
+                if filtros["editora"]:
+                    query += " AND editora LIKE %s"
+                    params.append(f"%{filtros['editora']}%")
+
+                cursor.execute(query, params)
+                livros = cursor.fetchall()
+                conn.close()
+
+                # Exibir resultados
+                resultados_window = tk.Toplevel()
+                resultados_window.title("Resultados da Pesquisa")
+                resultados_window.geometry("800x400")
+                resultados_window.configure(bg="#efece7")
+
+                if livros:
+                    tk.Label(resultados_window, text="Resultados da Pesquisa", font=("Arial", 16, "bold"), bg="#efece7").pack(pady=10)
+                    frame = tk.Frame(resultados_window, bg="#efece7")
+                    frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+                    headers = ["Título", "Autor", "Gênero", "Ano", "Editora"]
+                    for col, header in enumerate(headers):
+                        tk.Label(frame, text=header, font=("Arial", 12, "bold"), bg="#efece7").grid(row=0, column=col, padx=5, pady=5)
+
+                    for i, livro in enumerate(livros, start=1):
+                        for j, value in enumerate(livro):
+                            tk.Label(frame, text=value, bg="#efece7", font=("Arial", 10)).grid(row=i, column=j, padx=5, pady=5)
+                else:
+                    tk.Label(resultados_window, text="Nenhum livro encontrado.", font=("Arial", 14), bg="#efece7").pack(pady=20)
+
+            except mysql.connector.Error as e:
+                messagebox.showerror("Erro", f"Erro ao buscar no banco de dados: {e}")
+        else:
+            messagebox.showerror("Erro", "Não foi possível conectar ao banco de dados.")
+
+    tk.Button(
+        p, text="Buscar 🔍", font=("Arial", 12, "bold"), bg="#b57b50", fg="white", command=busca
+    ).pack(pady=10)
+    tk.Button(
+        p, text="Funcionário", font=("Arial", 12, "bold"), bg="#b57b50", fg="white", command=abrir_login
+    ).pack(pady=10)
+
+
+
+    p.mainloop()
+
+#___________________ pesquisa de livro  ⬆️ ________________________________________________________________________________________________________________________________________________
+
+def abrir_login():
+    # Criar a janela de login
+    janela_login = tk.Toplevel()
+    janela_login.title("Login - Livraria Versos & Universos")
+    janela_login.geometry("400x400")
+    janela_login.configure(bg="#faf4ec")
+
+    # Cabeçalho
+    tk.Label(
+        janela_login, text="Login", font=("Arial", 18, "bold"),
+        bg="#faf4ec", fg="#6c4f47"
+    ).pack(pady=20)
+
+    # Campo de entrada para login
+    tk.Label(
+        janela_login, text="Usuário", font=("Arial", 12),
+        bg="#faf4ec", fg="#6c4f47"
+    ).pack(pady=10)
+    entrada_login = tk.Entry(janela_login, font=("Arial", 12), width=30)
+    entrada_login.pack(pady=10)
+
+    # Campo de entrada para senha
+    tk.Label(
+        janela_login, text="Senha", font=("Arial", 12),
+        bg="#faf4ec", fg="#6c4f47"
+    ).pack(pady=10)
+    entrada_senha = tk.Entry(janela_login, font=("Arial", 12), show="*", width=30)
+    entrada_senha.pack(pady=10)
+
+    # Função para autenticar o usuário
+    def autenticar():
+        usuario = entrada_login.get()
+        senha = entrada_senha.get()
+        if verificar_login(usuario, senha):
+            messagebox.showinfo("Sucesso", "Login realizado com sucesso!")
+            janela_login.destroy()
+            tela_menu()
+        else:
+            messagebox.showerror("Erro", "Login ou senha inválidos.")
+
+
+    # Botões
+    tk.Button(
+        janela_login, text="Entrar", font=("Arial", 12, "bold"), bg="#b57b50", fg="white",
+        command=autenticar
+    ).pack(pady=20)
+
+
+
+#____________________________________________login⬆️_____________________________________________________________________________________________________________________________________
+
+# Função para verificar login
+def verificar_login(login, senha):
+    conn = conectar_bc() # BANCO DE DADOS _________________________________________________________________________________________________
+    if conn:
+        cursor = conn.cursor()
+        query = "SELECT * FROM cadastro_funci WHERE login = %s AND senha = %s"
+        cursor.execute(query, (login, senha))
+        resultado = cursor.fetchone()
+        conn.close()
+        return resultado
+    return None
+
+# Função para trocar senha
+def trocar_senha(email, nova_senha):
+    conn = conectar_bc() # BANCO DE DADOS _________________________________________________________________________________________________
+    if conn:
+        cursor = conn.cursor()
+        query = "UPDATE cadastro_funci SET senha = %s WHERE email = %s"
+        cursor.execute(query, (nova_senha, email))
+        conn.commit()
+        conn.close()
+        return True
+    return False
+
+
+#___________________ pesquisa de LOGIN ⬆️ ________________________________________________________________________________________________________________________________________________
+
+# Tela principal finci
+def tela_menu():
+    menu= tk.Toplevel()
+    menu.title("Tela Principal")
+    menu.geometry("800x600")
+    menu.configure(bg="#faf4ec")
+
+
+    tk.Label(menu, text="Bem-vindo à Livraria!", font=("Arial", 24, "bold"), bg="#faf4ec").pack(pady=20)
+
+    tk.Button(
+        menu, text="    Cadastro de Livro    ", font=("Arial", 12, "bold"), bg="#b57b50", fg="white",
+        command=tela_cadastro_livro
+    ).pack(pady=10)
+
+    tk.Button(
+        menu, text="  Consulta de Estoque  ", font=("Arial", 12, "bold"), bg="#b57b50", fg="white",
+        command=tela_consulta_estoque
+    ).pack(pady=10)
+
+    tk.Button(
+        menu, text="       Pagamento        ", font=("Arial", 12, "bold"), bg="#b57b50", fg="white",
+        command=tela_pagamento
+    ).pack(pady=10)
+
+    tk.Button(
+        menu, text="Cadastro de funcionário", font=("Arial", 12, "bold"), bg="#b57b50", fg="white",
+        command=tela_funcionario
+    ).pack(pady=10)
+
+    tk.Button(
+        menu, text="           sair           ", font=("Arial", 12, "bold"), bg="#b57b50", fg="white",
+        command=criar_tela_pesquisa
+    ).pack(pady=10)
+
+#___________________ pesquisa de menu ⬆️ ________________________________________________________________________________________________________________________________________________
+
+# Função para conectar ao banco de dados
+def conectar_bd():
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",   # Altere se necessário
+            user="root",        # Usuário do banco
+            password="root",    # Senha do banco
+            database="seu_banco" # Nome do banco
+        )
+        return conn
+    except mysql.connector.Error as e:
+        messagebox.showerror("Erro", f"Erro ao conectar ao banco de dados: {e}")
+        return None
+
+# Função para salvar as informações do cadastro
+def salvar_cadastro():
+    nome = nomes.get()
+    telefone = telefone.get()
+    email = email.get()
+    cargo = cargo.get()
+    cep = CEP.get()
+    codigo = CODIGO.get()
+    login = LOGIN.get()
+    senha = senha.get()
+    data_entrada = data.get()
+
+    if not (nome and telefone and email and cargo and cep and login and senha and data_entrada):
+        messagebox.showerror("Erro", "Todos os campos devem ser preenchidos!")
+        return
+
+    # Conectar ao banco de dados
+    conn = conectar_bd()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = """
+                INSERT INTO cadastro_funci (nome, tel, email, cargo, cep, login, senha, data_entr)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            valores = (nome, telefone, email, cargo, cep, login, senha, data_entrada)
+            cursor.execute(query, valores)
+            conn.commit()
+            messagebox.showinfo("Sucesso", "Cadastro salvo com sucesso!")
+            limpar_tela()
+        except mysql.connector.Error as e:
+            messagebox.showerror("Erro", f"Erro ao salvar no banco de dados: {e}")
+        finally:
+            conn.close()
+    else:
+        messagebox.showerror("Erro", "Não foi possível conectar ao banco de dados.")
+
+# Função para limpar os campos da tela
+def limpar_tela():
+    nomes.delete(0, tk.END)
+    telefone.delete(0, tk.END)
+    email.delete(0, tk.END)
+    cargo.delete(0, tk.END)
+    CEP.delete(0, tk.END)
+    CODIGO.delete(0, tk.END)
+    LOGIN.delete(0, tk.END)
+    senha.delete(0, tk.END)
+    data.delete(0, tk.END)
+
+# Função para a tela de cadastro
+def tela_funcionario():
+    global nomes, telefone, email, cargo, CEP, CODIGO, LOGIN, senha, data  # Declarar as variáveis globalmente para acesso em outras funções
+    
+    c = tk.Toplevel()
+    c.title("Tela de Cadastro de Funcionário")
+    c.geometry("800x600")
+    c.configure(bg="#faf4ec")
+
+    # Título
+    tk.Label(c, text="CADASTRO DE FUNCIONÁRIO", font=("Arial", 24, "bold"), bg="#b57b50", fg="white").pack(pady=20)
+
+    # Container para organização em colunas
+    frame = tk.Frame(c, bg="#faf4ec")
+    frame.pack(pady=10)
+
+    # Labels e campos do lado esquerdo
+    tk.Label(frame, text="Nome", font=("Arial", 12), bg="#faf4ec").grid(row=0, column=0, sticky="w", padx=10, pady=5)
+    nomes = tk.Entry(frame, font=("Arial", 12), width=30)
+    nomes.grid(row=0, column=1, padx=10, pady=5)
+
+    tk.Label(frame, text="Número de telefone", font=("Arial", 12), bg="#faf4ec").grid(row=1, column=0, sticky="w", padx=10, pady=5)
+    telefone = tk.Entry(frame, font=("Arial", 12), width=30)
+    telefone.grid(row=1, column=1, padx=10, pady=5)
+
+    tk.Label(frame, text="Cargo", font=("Arial", 12), bg="#faf4ec").grid(row=2, column=0, sticky="w", padx=10, pady=5)
+    cargo = tk.Entry(frame, font=("Arial", 12), width=30)
+    cargo.grid(row=2, column=1, padx=10, pady=5)
+
+    tk.Label(frame, text="CEP", font=("Arial", 12), bg="#faf4ec").grid(row=3, column=0, sticky="w", padx=10, pady=5)
+    CEP = tk.Entry(frame, font=("Arial", 12), width=30)
+    CEP.grid(row=3, column=1, padx=10, pady=5)
+
+    # Labels e campos do lado direito
+    tk.Label(frame, text="E-mail", font=("Arial", 12), bg="#faf4ec").grid(row=0, column=2, sticky="e", padx=10, pady=5)
+    email = tk.Entry(frame, font=("Arial", 12), width=30)
+    email.grid(row=0, column=3, padx=10, pady=5)
+
+    tk.Label(frame, text="LOGIN", font=("Arial", 12), bg="#faf4ec").grid(row=1, column=2, sticky="e", padx=10, pady=5)
+    LOGIN = tk.Entry(frame, font=("Arial", 12), width=30)
+    LOGIN.grid(row=1, column=3, padx=10, pady=5)
+
+    tk.Label(frame, text="SENHA", font=("Arial", 12), bg="#faf4ec").grid(row=2, column=2, sticky="e", padx=10, pady=5)
+    senha = tk.Entry(frame, font=("Arial", 12), show="*", width=30)
+    senha.grid(row=2, column=3, padx=10, pady=5)
+
+    tk.Label(frame, text="DATA DE ENTRADA", font=("Arial", 12), bg="#faf4ec").grid(row=3, column=2, sticky="e", padx=10, pady=5)
+    data = tk.Entry(frame, font=("Arial", 12), width=30)
+    data.grid(row=3, column=3, padx=10, pady=5)
+
+    # Botão para salvar
+    tk.Button(
+        c, text="Salvar", font=("Arial", 12, "bold"), bg="#b57b50", fg="white", command=conectar_bd
+    ).pack(pady=20)
+
+    c.mainloop()
+
+
+
+#___________________ cadastro de funcionário ⬆️ ________________________________________________________________________________________________________________________________________________
+
+
+# falta conctar com banco #############################################################################################
+
+def tela_cadastro_livro():
+    cadastro = tk.Toplevel()
+    cadastro.title("Cadastro de Livro")
+    cadastro.geometry("600x400")
+    cadastro.configure(bg="#faf4ec")
+
+    tk.Label(cadastro, text="Cadastro de Livro", font=("Arial", 18, "bold"), bg="#faf4ec").pack(pady=10)
+
+    nome_entry = tk.Entry(cadastro, font=("Arial", 12), width=30)
+    nome_entry.pack(pady=5)
+    autor_entry = tk.Entry(cadastro, font=("Arial", 12), width=30)
+    autor_entry.pack(pady=5)
+    genero_entry = tk.Entry(cadastro, font=("Arial", 12), width=30)
+    genero_entry.pack(pady=5)
+
+    def salvar_cadastro():
+        nome = nome_entry.get()
+        autor = autor_entry.get()
+        genero = genero_entry.get()
+        if nome and autor and genero:
+            conn = conectar_bc()
+            if conn:
+                cursor = conn.cursor()
+                query = "INSERT INTO cadastro (nome, autor, genero) VALUES (%s, %s, %s)"
+                cursor.execute(query, (nome, autor, genero))
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Sucesso", "Livro cadastrado com sucesso!")
+                cadastro.destroy()
+        else:
+            messagebox.showerror("Erro", "Preencha todos os campos.")
+
+    tk.Button(
+        cadastro, text="Salvar", font=("Arial", 12, "bold"), bg="#9c725d", fg="white",
+        command=salvar_cadastro
+    ).pack(pady=20)
+#___________________ cadastro de livro ⬆️ ________________________________________________________________________________________________________________________________________________
+
+# falta conctar com banco #############################################################################################
+# Tela de consulta de estoque
+def tela_consulta_estoque():
+    consulta_window = tk.Toplevel()
+    consulta_window.title("Consulta de Estoque")
+    consulta_window.geometry("800x600")
+    consulta_window.configure(bg="#faf4ec")
+
+    tk.Label(consulta_window, text="Consulta de Estoque", font=("Arial", 18, "bold"), bg="#faf4ec").pack(pady=10)
+
+    consulta_window.mainloop()
+#___________________ consulta de estoque⬆️ ________________________________________________________________________________________________________________________________________________
+
+# falta conctar com banco #############################################################################################
+# Tela de pagamento
+def tela_pagamento():
+    pagamento_window = tk.Toplevel()
+    pagamento_window.title("Pagamento")
+    pagamento_window.geometry("600x400")
+    pagamento_window.configure(bg="#faf4ec")
+
+    tk.Label(pagamento_window, text="Pagamento", font=("Arial", 18, "bold"), bg="#faf4ec").pack(pady=10)
+
+    pagamento_window.mainloop()
+#___________________ pagamento ⬆️ ________________________________________________________________________________________________________________________________________________
+
+
+# Inicia o programa
+criar_tela_pesquisa()
